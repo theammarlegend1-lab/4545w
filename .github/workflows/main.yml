@@ -1,0 +1,35 @@
+name: Windows RDP via Tailscale
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: Enable RDP
+      run: |
+        reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+        netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
+        net user rdpuser P@ssw0rd123 /add
+        net localgroup administrators rdpuser /add
+
+    - name: Install Tailscale
+      run: |
+        choco install tailscale -y
+
+    - name: Connect to Tailscale
+      env:
+        TS_AUTHKEY: YOUR_TAILSCALE_AUTH_KEY
+      run: |
+        "C:\Program Files\Tailscale\tailscale.exe" up --authkey=$env:TS_AUTHKEY --hostname=github-rdp
+
+    - name: Show Tailscale IP
+      run: |
+        "C:\Program Files\Tailscale\tailscale.exe" ip
+
+    - name: Keep Session Alive
+      run: |
+        Start-Sleep -Seconds 21600
